@@ -4,8 +4,6 @@
  *
  * Created on June 4, 2020, 2:02 PM
  */
-
-
 #include <xc.h>
 #include "I2C_Master.h"
 
@@ -74,11 +72,11 @@ void writeChar(char data){
     waitIdle();
 }
 
-void writeString(char data[], int tam){
-    for(int i = 0; i < tam; i++){
-        writeChar(data[i]);
-    }
-}
+//void writeString(char data[], int tam){
+//    for(int i = 0; i < tam; i++){
+//        writeChar(data[i]);
+//    }
+//}
 
 // Envia o cursor para alguma posição do LCD
 void gotoxy(char x, char y){
@@ -88,9 +86,9 @@ void gotoxy(char x, char y){
         }else if(y == 1){
             sendCMD(0xC0 + x); // N = 1 endereço inicial: 0xC0
         }else if(y == 2){
-            sendCMD(0x90 + x); // N = 1 endereço inicial: 0xC0
+            sendCMD(0x90 + x); // N = 2 endereço inicial: 0x90
         }else{
-            sendCMD(0xD0 + x); // N = 1 endereço inicial: 0xC0
+            sendCMD(0xD0 + x); // N = 3 endereço inicial: 0x90
         }
     } else {
         sendCMD(CLEAR);
@@ -150,6 +148,19 @@ void main(void) {
     //writeString('abc', 3);
     while(1){}
     return;
+    
+    
+    /*
+    1º Ligar dispositivo
+      - Ascender LED que está ligado
+      - Mostrar no display mensagem de inicialização
+    2º Mensagens
+     * Verificar se já tem configuração pre estabelecida
+     * Informar horário de despejo
+     * Informar quantidade a ser despejada
+     * Confirmação de configuração (OK)
+    3º Estudar função alarme do módulo RTC
+    */
     
     /*
     ADCON1 = 0x0f;                      // todas as portas como digitais
