@@ -1,6 +1,6 @@
 /*
  * File:   main.c
- * Author: Jonath
+ * Author: Jonath e Lucas
  *
  * Created on June 4, 2020, 2:02 PM
  */
@@ -15,7 +15,6 @@
 
 char  ESCRITA_PCF8523T  (unsigned char ENDH, unsigned char ENDL, char DADO);
 char LEITURA_PCF8523T (unsigned char _ENDH, unsigned char _ENDL);
-char Detecta_fim_escrita(void);
 
 char buf [17];
 unsigned char ENDH=0b11010000; //endereco para o pcf8523t
