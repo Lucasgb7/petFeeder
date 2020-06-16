@@ -1,7 +1,10 @@
 /*
- * File:   main.c
- * Author: Jonath e Lucas
- *
+ * Título:      Alimentador automático (Pet Feeder)
+ * File:        main.c
+ * Author:      Jonath W. Herdt e Lucas J. Cunha
+ * Disciplina:  Microcontroladores
+ * Professor:   Paulo Roberto Oliveira Valim
+ * Instituição: Universidade do Vale do Itajaí - UNIVALI
  * Created on June 4, 2020, 2:02 PM
  */
 #include <xc.h>
@@ -10,10 +13,16 @@
 #pragma config MCLRE = ON, WDT = OFF, OSC = HS
 #define _XTAL_FREQ 16000000
 
-//define display
+// Botoes
+#define PORTBbits.RB0 BTN_UP
+#define PORTBbits.RB1 BTN_DOWN
+#define PORTBbits.RB2 BTN_OK
+#define PORTBbits.RB1 BTN_RETURN
+
+// Define display
 #define CLEAR   0x01
 
-//  comandos do display
+// Comandos do display (4 bits)
 typedef struct tDisplayPort{
     char RS: 1;
     char R_W: 1;
@@ -23,14 +32,15 @@ typedef struct tDisplayPort{
 };
 struct tDisplayPort * pLCD;
 
-// Ativa e desativa o Enable para um pulso
+// Ativa e desativa o 'enable' para um pulso
 void pulseEnable(){ 
     __delay_us(1000);
     pLCD->E = 1;
     __delay_us(1000);
     pLCD->E = 0;
 }
-// 
+
+// Tempo entre um pulso
 void waitIdle(){
     char aux = 0xFF;
     TRISD = 0xF0;
@@ -50,7 +60,8 @@ void waitIdle(){
     pLCD->R_W = 0;
     TRISD = 0x00;
 }
-// Função para enviar o cursor
+
+// Funcao para enviar o cursor
 void sendCMD(char data){
     pLCD->RS = 0;
     pLCD->R_W = 0;
@@ -60,6 +71,7 @@ void sendCMD(char data){
     pulseEnable();
     waitIdle();
 }
+
 // Escreve um dado no LCD
 void writeChar(char data){
     pLCD->RS = 1;   // RS para escrita
@@ -78,7 +90,7 @@ void writeChar(char data){
 //    }
 //}
 
-// Envia o cursor para alguma posição do LCD
+// envia o cursor para alguma posição do LCD
 void gotoxy(char x, char y){
     if ((x < 15 || x > 0) && (y < 3 || y > 0)){ // Verifica se tá dentro do tamanho normal
         if(y == 0){
@@ -94,9 +106,11 @@ void gotoxy(char x, char y){
         sendCMD(CLEAR);
     }
 }
-// Configuração do microcontrolador
+
+// Configuracao inicial do microcontrolador
 void setup(){
     TRISD = 0x00;
+    TRISB = 0xFF;
 }
 // Pulso direto na porta D
 void enable(){
@@ -106,7 +120,7 @@ void enable(){
     PORTD = PORTD&0xFB;  // Pulso do Enable = 0 (Valor + 1111 1011)
     __delay_ms(5);
 }
-// Configurações iniciais
+// Configuracoes iniciais
 void start(){
     PORTD = 0x20;       // Function set
     enable();
@@ -133,7 +147,7 @@ char LEITURA_PCF8523T (unsigned char _ENDH, unsigned char _ENDL);
 
 // PCF8523
 char buf [17];
-unsigned char ENDH=0b11010000; //endereco para o pcf8523t
+unsigned char ENDH=0b11010000; // Endereco para o PCF8523T
 unsigned char ENDL=1;
 char DADO;
 unsigned char TEMP;
@@ -141,25 +155,32 @@ unsigned char TEMP;
 void main(void) {
     setup();
     start();
-    pLCD = &PORTD;  // LCD lê a porta D diretamente para configurações iniciais
+    pLCD = &PORTD;  // LCD le a porta D diretamente para configuracoes iniciais
     gotoxy(0, 0); 
     writeChar('A');
-    writeChar('B');
     //writeString('abc', 3);
-    while(1){}
-    return;
+    
+    
+    while(1){}      // Loop
+    return;         // Fim do programa
     
     
     /*
     1º Ligar dispositivo
-      - Ascender LED que está ligado
-      - Mostrar no display mensagem de inicialização
+     * Ascender LED de indicação (ON/OFF) [Controlado no PROTEUS]
+     * Mostrar no display mensagem de inicialização (Ex.: "Iniciando dispositivo...")
+
     2º Mensagens
      * Verificar se já tem configuração pre estabelecida
      * Informar horário de despejo
      * Informar quantidade a ser despejada
+     * Configurar botoes de OK, Voltar, + e -
      * Confirmação de configuração (OK)
+     
     3º Estudar função alarme do módulo RTC
+     * Analisar a posibilidade de mais de um alarme
+     
+    4º Verificar a força e tempo do motor
     */
     
     /*
@@ -218,6 +239,7 @@ void main(void) {
     */
 }
 
+// Funcao de escrita do PCF8523
 char ESCRITA_PCF8523T (unsigned char ENDH, unsigned char ENDL, char DADO){
     char x;								//declaração de variável local 
 	x = I2C_LIVRE ();					//chamada à função com retorno de valor. Verifica se barramento está livre
@@ -255,6 +277,7 @@ char ESCRITA_PCF8523T (unsigned char ENDH, unsigned char ENDL, char DADO){
 	}
 }
 
+// Funcao de leitura do PCF8523T
 char LEITURA_PCF8523T (unsigned char _ENDH, unsigned char _ENDL){
 	char x;								//declaração de variável local 
 	unsigned char DADO_I2C;				//declaração de variável local 
