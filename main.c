@@ -84,11 +84,29 @@ void writeChar(char data){
     waitIdle();
 }
 
-//void writeString(char data[], int tam){
-//    for(int i = 0; i < tam; i++){
-//        writeChar(data[i]);
-//    }
-//}
+void writeString(const char *c)                  // Function to print Strings on LCD
+{
+    unsigned char aux = 0;
+    while(*c != '\0')                           // While loop until the end of the string
+    {
+        if(aux >= 31)
+            return;
+        else if(aux == 15)
+        {
+            writeChar('-');
+            sendCMD(0xC0);
+            writeChar(*c);
+            c++;
+            aux++;
+        }
+        else
+        {
+            writeChar(*c);                       // Sending character by character
+            c++;                               // Moving pointer to next character
+            aux++;
+        }
+    }    
+}
 
 // envia o cursor para alguma posição do LCD
 void gotoxy(char x, char y){
@@ -152,14 +170,191 @@ unsigned char ENDL=1;
 char DADO;
 unsigned char TEMP;
 
+//Funcoes de C que nao tem no xc.h
+char* itoa(int value, char* result, int base_numerica) {
+    // check that the base if valid
+    if (base_numerica < 2 || base_numerica > 36) { *result = '\0'; return result; }
+
+    char* ptr = result, *ptr1 = result, tmp_char;
+    int tmp_value;
+
+    do {
+        tmp_value = value;
+        value /= base_numerica;
+        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base_numerica)];
+    } while ( value );
+
+    // Apply negative sign
+    if (tmp_value < 0) *ptr++ = '-';
+    *ptr-- = '\0';
+    while(ptr1 < ptr) {
+        tmp_char = *ptr;
+        *ptr--= *ptr1;
+        *ptr1++ = tmp_char;
+    }
+    return result;
+}
+
+///Funcoes de configuracao do petfeeder
+void configuraHorario(char hora[], char minuto[]){
+    int hora_I, minuto_I;
+    hora_I = atoi(hora);
+    minuto_I = atoi(minuto);
+    
+    gotoxy(0, 0); 
+    writeString("Informe");
+    gotoxy(0, 1); 
+    writeString("horario:");
+    gotoxy(0, 3);
+    writeString(hora);
+    gotoxy(4, 3);
+    writeChar(':');
+    gotoxy(6, 3);
+    writeString(minuto);
+   
+    //horas
+    while(BOTAO OK NAO FOR PRESSIONADO){
+        if(BOTAO + FOR PRESSIONADO){
+            hora_I += 1;
+            if(hora_I > 23) hora_I = 0;
+            if(hora_I < 0) hora_I = 23;
+            itoa(hora_I,hora,10);
+            if(hora_I < 10){
+                hora[1] = hora[0];
+                hora[0] = '0';
+            }
+            gotoxy(0, 3);
+            writeString(hora);
+        }
+        if(BOTAO - FOR PRESSIONADO){
+            hora_I -= 1;
+            if(hora_I > 23) hora_I = 0;
+            if(hora_I < 0) hora_I = 23;
+            itoa(hora_I,hora,10);
+            if(hora_I < 10){
+                hora[1] = hora[0];
+                hora[0] = '0';
+            }
+            gotoxy(0, 3);
+            writeString(hora);
+        }
+    }
+    
+    //minutos
+    while(BOTAO OK NAO FOR PRESSIONADO){
+        if(BOTAO + FOR PRESSIONADO){
+            minuto_I += 1;
+            if(minuto_I > 23) minuto_I = 0;
+            if(minuto_I < 0) minuto_I = 59;
+            itoa(minuto_I,minuto,10);
+            if(hora_I < 10){
+                minuto[1] = minuto[0];
+                minuto[0] = '0';
+            }
+            gotoxy(0, 3);
+            writeString(minuto);
+        }
+        if(BOTAO - FOR PRESSIONADO){
+            minuto_I -= 1;
+            if(minuto_I > 59) minuto_I = 0;
+            if(minuto_I < 0) minuto_I = 59;
+            itoa(minuto_I,minuto,10);
+            if(minuto_I < 10){
+                minuto[1] = minuto[0];
+                minuto[0] = '0';
+            }
+            gotoxy(0, 3);
+            writeString(minuto);
+        }
+    }
+}
+
+int printConfirmacao(){
+    gotoxy(0, 0); 
+    writeString("Add mais");
+    gotoxy(0, 1); 
+    writeString("horario?");
+    gotoxy(0, 2); 
+    writeString("SIM(OK)");
+    gotoxy(0, 3); 
+    writeString("NAO(RETURN)");
+    
+    if(BOTAO OK)
+        return 1;
+    else
+        return 0;
+}
+
+int configuraQuantidade(){
+    int quantidade = 1;
+    char quantidade_c[2];
+    itoa(quantidade,quantidade_c,10);
+    
+    gotoxy(0, 0); 
+    writeString("Quanti-");
+    gotoxy(0, 1); 
+    writeString("dade:");
+    gotoxy(0, 2);
+    writeString(quantidade_c);
+    
+    while(NAO PRESSIONAR BOTAO OK){
+        if(PRESSIONAR BOTAO +){
+            quantidade += 1;
+            if(quantidade > 10) quantidade = 0;
+            if(quantidade < 0) quantidade = 10;
+            itoa(quantidade,quantidade_c,10);
+            if(quantidade < 10){
+                quantidade_c[1] = quantidade_c[0];
+                quantidade_c[0] = '0';
+            }
+            gotoxy(0, 2);
+            writeString(quantidade_c);
+        }
+        if(PRESSIONAR BOTAO -){
+            quantidade -= 1;
+            if(quantidade > 10) quantidade = 0;
+            if(quantidade < 0) quantidade = 10;
+            itoa(quantidade,quantidade_c,10);
+            if(quantidade < 10){
+                quantidade_c[1] = quantidade_c[0];
+                quantidade_c[0] = '0';
+            }
+            gotoxy(0, 2);
+            writeString(quantidade_c);
+        }
+    }
+    
+    return quantidade;
+}
+
 void main(void) {
     setup();
     start();
     pLCD = &PORTD;  // LCD le a porta D diretamente para configuracoes iniciais
-    gotoxy(0, 0); 
-    writeChar('A');
-    //writeString('abc', 3);
     
+    gotoxy(0, 0); 
+    writeString("Inician-");
+    gotoxy(0, 1);
+    writeString("do");
+    gotoxy(0, 2);
+    writeString("disposi-");
+    gotoxy(0, 3);
+    writeString("tivo...");
+    
+    __delay_ms(1000);
+    
+    sendCMD(CLEAR);
+    
+    char hora[2]="12";
+    char minuto[2]="00";
+    do{
+        configuraHorario(hora, minuto);
+        //
+        //adicionar a hora e minuto para o alarme do PCF
+        //
+    }while(printConfirmacao());
+    
+    int quantidade = configuraQuantidade();
     
     while(1){}      // Loop
     return;         // Fim do programa
