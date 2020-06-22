@@ -14,10 +14,10 @@
 #define _XTAL_FREQ 16000000
 
 // Botoes
-#define PORTBbits.RB0 BTN_UP
-#define PORTBbits.RB1 BTN_DOWN
-#define PORTBbits.RB2 BTN_OK
-#define PORTBbits.RB1 BTN_RETURN
+#define BTN_UP PORTBbits.RB0
+#define BTN_DOWN PORTBbits.RB1 
+#define BTN_OK PORTBbits.RB2 
+#define BTN_RETURN PORTBbits.RB3 
 
 // Define display
 #define CLEAR   0x01
@@ -44,6 +44,7 @@ void pulseEnable(){
 void waitIdle(){
     char aux = 0xFF;
     TRISD = 0xF0;
+    pLCD->RS = 0;
     pLCD->R_W = 1;
     while ( aux&0x80 ){
         pLCD->E = 1;
@@ -207,14 +208,19 @@ void configuraHorario(char hora[], char minuto[]){
     writeString("horario:");
     gotoxy(0, 3);
     writeString(hora);
-    gotoxy(4, 3);
+    gotoxy(2, 3);
     writeChar(':');
-    gotoxy(6, 3);
+    gotoxy(3, 3);
     writeString(minuto);
    
+    int botaoUP = 0;
+    int botaoDOWN = 0;
+    
     //horas
-    while(BOTAO OK NAO FOR PRESSIONADO){
-        if(BOTAO + FOR PRESSIONADO){
+    while(!BTN_OK){
+        if(!BTN_UP) botaoUP = 0;
+        if(BTN_UP && botaoUP == 0){
+            botaoUP = 1;
             hora_I += 1;
             if(hora_I > 23) hora_I = 0;
             if(hora_I < 0) hora_I = 23;
@@ -226,7 +232,9 @@ void configuraHorario(char hora[], char minuto[]){
             gotoxy(0, 3);
             writeString(hora);
         }
-        if(BOTAO - FOR PRESSIONADO){
+        if(!BTN_DOWN) botaoDOWN = 0;
+        if(BTN_DOWN && botaoDOWN == 0){
+            botaoDOWN = 1;
             hora_I -= 1;
             if(hora_I > 23) hora_I = 0;
             if(hora_I < 0) hora_I = 23;
@@ -240,21 +248,27 @@ void configuraHorario(char hora[], char minuto[]){
         }
     }
     
+    __delay_ms(500);
+    
     //minutos
-    while(BOTAO OK NAO FOR PRESSIONADO){
-        if(BOTAO + FOR PRESSIONADO){
+    while(!BTN_OK){
+        if(!BTN_UP) botaoUP = 0;
+        if(BTN_UP && botaoUP == 0){
+            botaoUP = 1;
             minuto_I += 1;
-            if(minuto_I > 23) minuto_I = 0;
+            if(minuto_I > 59) minuto_I = 0;
             if(minuto_I < 0) minuto_I = 59;
             itoa(minuto_I,minuto,10);
             if(hora_I < 10){
                 minuto[1] = minuto[0];
                 minuto[0] = '0';
             }
-            gotoxy(0, 3);
+            gotoxy(3, 3);
             writeString(minuto);
         }
-        if(BOTAO - FOR PRESSIONADO){
+        if(!BTN_DOWN) botaoDOWN = 0;
+        if(BTN_DOWN && botaoDOWN == 0){
+            botaoDOWN = 1;
             minuto_I -= 1;
             if(minuto_I > 59) minuto_I = 0;
             if(minuto_I < 0) minuto_I = 59;
@@ -263,15 +277,17 @@ void configuraHorario(char hora[], char minuto[]){
                 minuto[1] = minuto[0];
                 minuto[0] = '0';
             }
-            gotoxy(0, 3);
+            gotoxy(3, 3);
             writeString(minuto);
         }
     }
+    
+    __delay_ms(500);
 }
 
 int printConfirmacao(){
     gotoxy(0, 0); 
-    writeString("Add mais");
+    writeString("Adicionar outro");
     gotoxy(0, 1); 
     writeString("horario?");
     gotoxy(0, 2); 
@@ -279,10 +295,14 @@ int printConfirmacao(){
     gotoxy(0, 3); 
     writeString("NAO(RETURN)");
     
-    if(BOTAO OK)
-        return 1;
-    else
-        return 0;
+    while(1){
+        if(BTN_OK)
+            return 1;
+        else
+            return 0;
+    }
+    
+    __delay_ms(500);
 }
 
 int configuraQuantidade(){
@@ -291,14 +311,17 @@ int configuraQuantidade(){
     itoa(quantidade,quantidade_c,10);
     
     gotoxy(0, 0); 
-    writeString("Quanti-");
-    gotoxy(0, 1); 
-    writeString("dade:");
-    gotoxy(0, 2);
+    writeString("Quantidade:");
+    gotoxy(0, 1);
     writeString(quantidade_c);
     
-    while(NAO PRESSIONAR BOTAO OK){
-        if(PRESSIONAR BOTAO +){
+    int botaoUP = 0;
+    int botaoDOWN = 0;
+    
+    while(!BTN_OK){
+        if(!BTN_UP) botaoUP = 0;
+        if(BTN_UP && botaoUP == 0){
+            botaoUP = 1;
             quantidade += 1;
             if(quantidade > 10) quantidade = 0;
             if(quantidade < 0) quantidade = 10;
@@ -307,10 +330,12 @@ int configuraQuantidade(){
                 quantidade_c[1] = quantidade_c[0];
                 quantidade_c[0] = '0';
             }
-            gotoxy(0, 2);
+            gotoxy(0, 1);
             writeString(quantidade_c);
         }
-        if(PRESSIONAR BOTAO -){
+        if(!BTN_DOWN) botaoDOWN = 0;
+        if(BTN_DOWN && botaoDOWN == 0){
+            botaoDOWN = 1;
             quantidade -= 1;
             if(quantidade > 10) quantidade = 0;
             if(quantidade < 0) quantidade = 10;
@@ -319,10 +344,12 @@ int configuraQuantidade(){
                 quantidade_c[1] = quantidade_c[0];
                 quantidade_c[0] = '0';
             }
-            gotoxy(0, 2);
+            gotoxy(0, 1);
             writeString(quantidade_c);
         }
     }
+    
+    __delay_ms(500);
     
     return quantidade;
 }
@@ -333,19 +360,15 @@ void main(void) {
     pLCD = &PORTD;  // LCD le a porta D diretamente para configuracoes iniciais
     
     gotoxy(0, 0); 
-    writeString("Inician-");
+    writeString("Iniciando");
     gotoxy(0, 1);
-    writeString("do");
-    gotoxy(0, 2);
-    writeString("disposi-");
-    gotoxy(0, 3);
-    writeString("tivo...");
+    writeString("dispositivo...");
     
     __delay_ms(1000);
     
     sendCMD(CLEAR);
     
-    char hora[2]="12";
+    char hora[2]="00";
     char minuto[2]="00";
     do{
         configuraHorario(hora, minuto);
@@ -354,6 +377,7 @@ void main(void) {
         //
     }while(printConfirmacao());
     
+    sendCMD(CLEAR);
     int quantidade = configuraQuantidade();
     
     while(1){}      // Loop
