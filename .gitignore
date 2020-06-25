@@ -1,0 +1,7 @@
+/Makefile
+/nbproject
+/debug
+/build
+/dist
+*.pdsbak
+*.workspace
