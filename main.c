@@ -14,10 +14,10 @@
 #define _XTAL_FREQ 16000000
 
 // Botoes
-#define BTN_UP PORTBbits.RB0
-#define BTN_DOWN PORTBbits.RB1 
-#define BTN_OK PORTBbits.RB2 
-#define BTN_RETURN PORTBbits.RB3 
+#define BTN_UP      PORTBbits.RB0
+#define BTN_DOWN    PORTBbits.RB1 
+#define BTN_OK      PORTBbits.RB2 
+#define BTN_RETURN  PORTBbits.RB3 
 
 // Define display
 #define CLEAR   0x01
@@ -85,6 +85,7 @@ void writeChar(char data){
     waitIdle();
 }
 
+// Escreve uma palavra no LCD
 void writeString(const char *c)                  // Function to print Strings on LCD
 {
     unsigned char aux = 0;
@@ -128,8 +129,18 @@ void gotoxy(char x, char y){
 
 // Configuracao inicial do microcontrolador
 void setup(){
-    TRISD = 0x00;
-    TRISB = 0xFF;
+    TRISD = 0x00;   // portas de saida
+    TRISB = 0xFF;   // portas de entrada
+    TRISC = 0xFF;   // portas de entrada
+    ADCON1 = 0x0F; // portas digitais
+    
+    // i2c
+    SSPCON1 = 0b00101000;				// configura dispositivo como mestre
+										// habilita porta serial e ativa pinos SDA E SCL <5>
+										// ativa modo mestre <3:0>
+	SSPADD = 3;						    // bit rate de 100kbps a Fosc = 16MHz ---- SSPADD = [(16M / 1M) / 4] -1
+	SSPSTAT = 0b10000000;				// controle de inclinação desativado <7>
+										// níveis de entrada conforme especificação I2C <6>
 }
 // Pulso direto na porta D
 void enable(){
@@ -166,8 +177,8 @@ char LEITURA_PCF8523T (unsigned char _ENDH, unsigned char _ENDL);
 
 // PCF8523
 char buf [17];
-unsigned char ENDH=0b11010000; // Endereco para o PCF8523T
-unsigned char ENDL=1;
+unsigned char ENDH = 0b11010000; // Endereco para o PCF8523T
+unsigned char ENDL = 1;
 char DADO;
 unsigned char TEMP;
 
@@ -196,10 +207,10 @@ char* itoa(int value, char* result, int base_numerica) {
     return result;
 }
 
-///Funcoes de configuracao do petfeeder
+// Funcoes de configuracao do petfeeder
 void configuraHorario(char hora[], char minuto[]){
     int hora_I, minuto_I;
-    hora_I = atoi(hora);
+    hora_I = atoi(hora); // converte string para inteiro
     minuto_I = atoi(minuto);
     
     gotoxy(0, 0); 
@@ -224,13 +235,15 @@ void configuraHorario(char hora[], char minuto[]){
             hora_I += 1;
             if(hora_I > 23) hora_I = 0;
             if(hora_I < 0) hora_I = 23;
-            itoa(hora_I,hora,10);
+            itoa(hora_I, hora, 10); // converte inteiro para string
             if(hora_I < 10){
                 hora[1] = hora[0];
                 hora[0] = '0';
             }
             gotoxy(0, 3);
             writeString(hora);
+            gotoxy(2, 3);
+            writeChar(':');
         }
         if(!BTN_DOWN) botaoDOWN = 0;
         if(BTN_DOWN && botaoDOWN == 0){
@@ -238,13 +251,15 @@ void configuraHorario(char hora[], char minuto[]){
             hora_I -= 1;
             if(hora_I > 23) hora_I = 0;
             if(hora_I < 0) hora_I = 23;
-            itoa(hora_I,hora,10);
+            itoa(hora_I, hora, 10);
             if(hora_I < 10){
                 hora[1] = hora[0];
                 hora[0] = '0';
             }
             gotoxy(0, 3);
             writeString(hora);
+            gotoxy(2, 3);
+            writeChar(':');
         }
     }
     
@@ -258,11 +273,13 @@ void configuraHorario(char hora[], char minuto[]){
             minuto_I += 1;
             if(minuto_I > 59) minuto_I = 0;
             if(minuto_I < 0) minuto_I = 59;
-            itoa(minuto_I,minuto,10);
+            itoa(minuto_I, minuto, 10); // converte inteiro para string
             if(hora_I < 10){
                 minuto[1] = minuto[0];
-                minuto[0] = '0';
+                minuto[0] = '0';    // ex: 09, 08, 07...
             }
+            gotoxy(2, 3);
+            writeChar(':');
             gotoxy(3, 3);
             writeString(minuto);
         }
@@ -277,6 +294,8 @@ void configuraHorario(char hora[], char minuto[]){
                 minuto[1] = minuto[0];
                 minuto[0] = '0';
             }
+            gotoxy(2, 3);
+            writeChar(':');
             gotoxy(3, 3);
             writeString(minuto);
         }
@@ -291,15 +310,15 @@ int printConfirmacao(){
     gotoxy(0, 1); 
     writeString("horario?");
     gotoxy(0, 2); 
-    writeString("SIM(OK)");
+    writeString("OK = SIM");
     gotoxy(0, 3); 
-    writeString("NAO(RETURN)");
-    
+    writeString("<< = NAO");
+
     while(1){
         if(BTN_OK)
-            return 1;
+            return 1;   // configurar outro horario
         else
-            return 0;
+            return 0;   // proximo passo
     }
     
     __delay_ms(500);
@@ -354,27 +373,175 @@ int configuraQuantidade(){
     return quantidade;
 }
 
+void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
+    int hora_I, minuto_I, segundo_I;
+    hora_I = atoi(hora); // converte string para inteiro
+    minuto_I = atoi(minuto);
+    segundo_I = atoi(segundo);
+    
+    gotoxy(0, 0); 
+    writeString("Informe");
+    gotoxy(0, 1); 
+    writeString("horario:");
+    gotoxy(0, 3);
+    writeString(hora);
+    gotoxy(2, 3);
+    writeChar(':');
+    gotoxy(3, 3);
+    writeString(minuto);
+    gotoxy(5, 3);
+    writeChar(':');
+    gotoxy(6, 3);
+    writeString(segundo);
+   
+    int botaoUP = 0;
+    int botaoDOWN = 0;   
+    //horas
+    while(!BTN_OK){
+        if(!BTN_UP) botaoUP = 0;
+        if(BTN_UP && botaoUP == 0){
+            botaoUP = 1;
+            hora_I += 1;
+            if(hora_I > 23) hora_I = 0;
+            if(hora_I < 0) hora_I = 23;
+            itoa(hora_I, hora, 10); // converte inteiro para string
+            if(hora_I < 10){
+                hora[1] = hora[0];
+                hora[0] = '0';
+            }
+            gotoxy(0, 3);
+            writeString(hora);
+            gotoxy(2, 3);
+            writeChar(':');
+        }
+        if(!BTN_DOWN) botaoDOWN = 0;
+        if(BTN_DOWN && botaoDOWN == 0){
+            botaoDOWN = 1;
+            hora_I -= 1;
+            if(hora_I > 23) hora_I = 0;
+            if(hora_I < 0) hora_I = 23;
+            itoa(hora_I, hora, 10);
+            if(hora_I < 10){
+                hora[1] = hora[0];
+                hora[0] = '0';
+            }
+            gotoxy(0, 3);
+            writeString(hora);
+            gotoxy(2, 3);
+            writeChar(':');
+        }
+    }    
+    __delay_ms(500);
+    //minutos
+    while(!BTN_OK){
+        if(!BTN_UP) botaoUP = 0;
+        if(BTN_UP && botaoUP == 0){
+            botaoUP = 1;
+            minuto_I += 1;
+            if(minuto_I > 59) minuto_I = 0;
+            if(minuto_I < 0) minuto_I = 59;
+            itoa(minuto_I, minuto, 10); // converte inteiro para string
+            if(hora_I < 10){
+                minuto[1] = minuto[0];
+                minuto[0] = '0';    // ex: 09, 08, 07...
+            }
+            gotoxy(2, 3);
+            writeChar(':');
+            gotoxy(3, 3);
+            writeString(minuto);
+        }
+        if(!BTN_DOWN) botaoDOWN = 0;
+        if(BTN_DOWN && botaoDOWN == 0){
+            botaoDOWN = 1;
+            minuto_I -= 1;
+            if(minuto_I > 59) minuto_I = 0;
+            if(minuto_I < 0) minuto_I = 59;
+            itoa(minuto_I,minuto,10);
+            if(minuto_I < 10){
+                minuto[1] = minuto[0];
+                minuto[0] = '0';
+            }
+            gotoxy(2, 3);
+            writeChar(':');
+            gotoxy(3, 3);
+            writeString(minuto);
+        }
+    }
+     __delay_ms(500);
+    //segundos
+    while(!BTN_OK){
+        if(!BTN_UP) botaoUP = 0;
+        if(BTN_UP && botaoUP == 0){
+            botaoUP = 1;
+            segundo_I += 1;
+            if(segundo_I > 59) segundo_I = 0;
+            if(segundo_I < 0) segundo_I = 59;
+            itoa(segundo_I, segundo, 10); // converte inteiro para string
+            if(segundo_I < 10){
+                segundo_I[1] = segundo_I[0];
+                segundo_I[0] = '0';    // ex: 09, 08, 07...
+            }
+            gotoxy(5, 3);
+            writeChar(':');
+            gotoxy(6, 3);
+            writeString(segundo_I);
+        }
+        if(!BTN_DOWN) botaoDOWN = 0;
+        if(BTN_DOWN && botaoDOWN == 0){
+            botaoDOWN = 1;
+            segundo_I -= 1;
+            if(segundo_I > 59) segundo_I = 0;
+            if(segundo_I < 0) segundo = 59;
+            itoa(segundo_I,segundo,10);
+            if(segundo_I < 10){
+                segundo_I[1] = segundo[0];
+                segundo_I[0] = '0';
+            }
+            gotoxy(5, 3);
+            writeChar(':');
+            gotoxy(6, 3);
+            writeString(minuto);
+        }
+    }
+    __delay_ms(500);
+}
+
 void main(void) {
-    setup();
-    start();
+    setup(); // configuracoes iniciais
+    start(); // inicía o LCD
     pLCD = &PORTD;  // LCD le a porta D diretamente para configuracoes iniciais
     
     gotoxy(0, 0); 
     writeString("Iniciando");
     gotoxy(0, 1);
     writeString("dispositivo...");
-    
-    __delay_ms(1000);
-    
+     __delay_ms(1000);   
     sendCMD(CLEAR);
     
-    char hora[2]="00";
-    char minuto[2]="00";
+    char horaAtual[2] = "00";
+    char minutoAtual[2] = "00";
+    char segundoAtual[2] = "00";
+    do{
+        configuraHorarioAtual(&horaAtual, &minutoAtual, &segundoAtual);
+        // DADO = horaAtual;
+        // configura horario atual no PCF
+                /*  ENDL    -   DEFINIR HORARIO ATUAL
+         *  3   =   Segundos
+         *  4   =   Minutos
+         *  5   =   Horas
+         *  6   =   Dias
+         *  7   =   Dias da semana
+         *  8   =   Meses
+         *  8   =   Ano    
+         */
+    }while(1);
+    
+    char hora[2] = "00";
+    char minuto[2] = "00";
     do{
         configuraHorario(hora, minuto);
-        //
-        //adicionar a hora e minuto para o alarme do PCF
-        //
+        // adicionar a hora e minuto para o alarme do PCF
+
     }while(printConfirmacao());
     
     sendCMD(CLEAR);
@@ -382,8 +549,7 @@ void main(void) {
     
     while(1){}      // Loop
     return;         // Fim do programa
-    
-    
+        
     /*
     1º Ligar dispositivo
      * Ascender LED de indicação (ON/OFF) [Controlado no PROTEUS]
@@ -400,62 +566,7 @@ void main(void) {
      * Analisar a posibilidade de mais de um alarme
      
     4º Verificar a força e tempo do motor
-    */
-    
-    /*
-    ADCON1 = 0x0f;                      // todas as portas como digitais
-    TRISC = 0xff;                       //configura pinos SDA e SCL como entrada
-	SSPCON1 = 0b00101000;				//configura dispositivo como mestre
-										//Habilita porta serial e ativa pinos SDA E SCL <5>
-										//ativa modo mestre <3:0>
-	SSPADD = 3;						    //bit rate de 100kbps a Fosc = 16MHz ---- SSPADD = [(16M / 1M) / 4] -1
-	SSPSTAT = 0b10000000;				//controle de inclinação desativado <7>
-										//níveis de entrada conforme especificação I2C <6>
-    
-    TRISD = 0x00; // Definindo como porta de saida
-    TRISB = 0xFF; // Definindo como porta de entrada
-    
-    DADO = 0x00; 
-    ENDL= 3; //segundos
-    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
-	__delay_ms(10);
-    DADO = 0x00;
-    ENDL= 4; //minutos
-    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
-    DADO = 0x00;
-    ENDL= 5; //horas
-    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
-	__delay_ms(10);
-    DADO = 0x12;
-    ENDL= 6; //dia
-    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
-	__delay_ms(10);
-    DADO = 0x12;
-    ENDL= 8; //mes
-    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
-	__delay_ms(10);
-    DADO = 0x12;
-    ENDL= 9; //ano
-    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
-	__delay_ms(10);
-
-    ENDL=3;
-    DADO=LEITURA_PCF8523T (ENDH, ENDL);
-    ENDL = 4;
-    DADO= LEITURA_PCF8523T(ENDH, ENDL);
-    ENDL = 5;
-    DADO= LEITURA_PCF8523T(ENDH, ENDL);
-    ENDL = 6;
-    DADO= LEITURA_PCF8523T(ENDH, ENDL);
-    ENDL = 8;
-    DADO= LEITURA_PCF8523T(ENDH, ENDL);
-    ENDL = 9;
-    DADO= LEITURA_PCF8523T(ENDH, ENDL);
-    
-    while(1);
-
-    return;
-    */
+    */    
 }
 
 // Funcao de escrita do PCF8523
