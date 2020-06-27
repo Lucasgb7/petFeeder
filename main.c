@@ -506,6 +506,15 @@ void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
     __delay_ms(500);
 }
 
+// nao funciona
+unsigned char converteBinario(char str_decimal){
+    switch (str_decimal){
+        case '0':
+            return 0b00000000;
+            break;
+    }
+}
+
 void main(void) {
     setup(); // configuracoes iniciais
     start(); // inicía o LCD
@@ -523,10 +532,11 @@ void main(void) {
     char segundoAtual[2] = "00";
     do{
         configuraHorarioAtual(&horaAtual, &minutoAtual, &segundoAtual);
-        // DADO = horaAtual;
+        // DADO = segundoAtual; // converter para hexadecimal
+        // ENDL = 3; 
         // configura horario atual no PCF
                 /*  ENDL    -   DEFINIR HORARIO ATUAL
-         *  3   =   Segundos
+         *  3   =   Segundos (bit_7 = 1/ bit_6_to_4 = dezena / bit_3_to_0 = unidade)
          *  4   =   Minutos
          *  5   =   Horas
          *  6   =   Dias
