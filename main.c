@@ -86,28 +86,11 @@ void writeChar(char data){
 }
 
 // Escreve uma palavra no LCD
-void writeString(const char *c)                  // Function to print Strings on LCD
+void writeString(char c[], int tam)                  // Function to print Strings on LCD
 {
-    unsigned char aux = 0;
-    while(*c != '\0')                           // While loop until the end of the string
-    {
-        if(aux >= 31)
-            return;
-        else if(aux == 15)
-        {
-            writeChar('-');
-            sendCMD(0xC0);
-            writeChar(*c);
-            c++;
-            aux++;
-        }
-        else
-        {
-            writeChar(*c);                       // Sending character by character
-            c++;                               // Moving pointer to next character
-            aux++;
-        }
-    }    
+    for(int i = 0; i < tam; i++){
+        writeChar(c[i]);
+    }  
 }
 
 // envia o cursor para alguma posição do LCD
@@ -131,7 +114,7 @@ void gotoxy(char x, char y){
 void setup(){
     TRISD = 0x00;   // portas de saida
     TRISB = 0xFF;   // portas de entrada
-    TRISC = 0xFF;   // portas de entrada
+    TRISC = 0b11111000;   // portas de saida
     ADCON1 = 0x0F; // portas digitais
     
     // i2c
@@ -208,21 +191,21 @@ char* itoa(int value, char* result, int base_numerica) {
 }
 
 // Funcoes de configuracao do petfeeder
-void configuraHorario(char hora[], char minuto[]){
-    int hora_I, minuto_I;
-    hora_I = atoi(hora); // converte string para inteiro
-    minuto_I = atoi(minuto);
+void configuraAlarme(char horaAlarme[], char minutoAlarme[]){
+    int horaAlarme_I, minutoAlarme_I;
+    horaAlarme_I = atoi(horaAlarme); // converte string para inteiro
+    minutoAlarme_I = atoi(minutoAlarme);
     
     gotoxy(0, 0); 
-    writeString("Informe");
+    writeString("Informe", 7);
     gotoxy(0, 1); 
-    writeString("horario:");
-    gotoxy(0, 3);
-    writeString(hora);
-    gotoxy(2, 3);
+    writeString("alarme:", 7);
+    gotoxy(0, 2);
+    writeString(horaAlarme, 2);
+    gotoxy(2, 2);
     writeChar(':');
-    gotoxy(3, 3);
-    writeString(minuto);
+    gotoxy(3, 2);
+    writeString(minutoAlarme, 2);
    
     int botaoUP = 0;
     int botaoDOWN = 0;
@@ -232,33 +215,33 @@ void configuraHorario(char hora[], char minuto[]){
         if(!BTN_UP) botaoUP = 0;
         if(BTN_UP && botaoUP == 0){
             botaoUP = 1;
-            hora_I += 1;
-            if(hora_I > 23) hora_I = 0;
-            if(hora_I < 0) hora_I = 23;
-            itoa(hora_I, hora, 10); // converte inteiro para string
-            if(hora_I < 10){
-                hora[1] = hora[0];
-                hora[0] = '0';
+            horaAlarme_I += 1;
+            if(horaAlarme_I > 23) horaAlarme_I = 0;
+            if(horaAlarme_I < 0) horaAlarme_I = 23;
+            itoa(horaAlarme_I, horaAlarme, 10); // converte inteiro para string
+            if(horaAlarme_I < 10){
+                horaAlarme[1] = horaAlarme[0];
+                horaAlarme[0] = '0';
             }
-            gotoxy(0, 3);
-            writeString(hora);
-            gotoxy(2, 3);
+            gotoxy(0, 2);
+            writeString(horaAlarme, 2);
+            gotoxy(2, 2);
             writeChar(':');
         }
         if(!BTN_DOWN) botaoDOWN = 0;
         if(BTN_DOWN && botaoDOWN == 0){
             botaoDOWN = 1;
-            hora_I -= 1;
-            if(hora_I > 23) hora_I = 0;
-            if(hora_I < 0) hora_I = 23;
-            itoa(hora_I, hora, 10);
-            if(hora_I < 10){
-                hora[1] = hora[0];
-                hora[0] = '0';
+            horaAlarme_I -= 1;
+            if(horaAlarme_I > 23) horaAlarme_I = 0;
+            if(horaAlarme_I < 0) horaAlarme_I = 23;
+            itoa(horaAlarme_I, horaAlarme, 10);
+            if(horaAlarme_I < 10){
+                horaAlarme[1] = horaAlarme[0];
+                horaAlarme[0] = '0';
             }
-            gotoxy(0, 3);
-            writeString(hora);
-            gotoxy(2, 3);
+            gotoxy(0, 2);
+            writeString(horaAlarme, 2);
+            gotoxy(2, 2);
             writeChar(':');
         }
     }
@@ -270,34 +253,34 @@ void configuraHorario(char hora[], char minuto[]){
         if(!BTN_UP) botaoUP = 0;
         if(BTN_UP && botaoUP == 0){
             botaoUP = 1;
-            minuto_I += 1;
-            if(minuto_I > 59) minuto_I = 0;
-            if(minuto_I < 0) minuto_I = 59;
-            itoa(minuto_I, minuto, 10); // converte inteiro para string
-            if(hora_I < 10){
-                minuto[1] = minuto[0];
-                minuto[0] = '0';    // ex: 09, 08, 07...
+            minutoAlarme_I += 1;
+            if(minutoAlarme_I > 59) minutoAlarme_I = 0;
+            if(minutoAlarme_I < 0) minutoAlarme_I = 59;
+            itoa(minutoAlarme_I, minutoAlarme, 10); // converte inteiro para string
+            if(minutoAlarme_I < 10){
+                minutoAlarme[1] = minutoAlarme[0];
+                minutoAlarme[0] = '0';    // ex: 09, 08, 07...
             }
-            gotoxy(2, 3);
+            gotoxy(2, 2);
             writeChar(':');
-            gotoxy(3, 3);
-            writeString(minuto);
+            gotoxy(3, 2);
+            writeString(minutoAlarme, 2);
         }
         if(!BTN_DOWN) botaoDOWN = 0;
         if(BTN_DOWN && botaoDOWN == 0){
             botaoDOWN = 1;
-            minuto_I -= 1;
-            if(minuto_I > 59) minuto_I = 0;
-            if(minuto_I < 0) minuto_I = 59;
-            itoa(minuto_I,minuto,10);
-            if(minuto_I < 10){
-                minuto[1] = minuto[0];
-                minuto[0] = '0';
+            minutoAlarme_I -= 1;
+            if(minutoAlarme_I > 59) minutoAlarme_I = 0;
+            if(minutoAlarme_I < 0) minutoAlarme_I = 59;
+            itoa(minutoAlarme_I,minutoAlarme,10);
+            if(minutoAlarme_I < 10){
+                minutoAlarme[1] = minutoAlarme[0];
+                minutoAlarme[0] = '0';
             }
-            gotoxy(2, 3);
+            gotoxy(2, 2);
             writeChar(':');
-            gotoxy(3, 3);
-            writeString(minuto);
+            gotoxy(3, 2);
+            writeString(minutoAlarme, 2);
         }
     }
     
@@ -305,19 +288,20 @@ void configuraHorario(char hora[], char minuto[]){
 }
 
 int printConfirmacao(){
+    sendCMD(CLEAR);
     gotoxy(0, 0); 
-    writeString("Adicionar outro");
+    writeString("Adicionar outro", 15);
     gotoxy(0, 1); 
-    writeString("horario?");
+    writeString("horario?", 8);
     gotoxy(0, 2); 
-    writeString("OK = SIM");
+    writeString("OK = SIM", 8);
     gotoxy(0, 3); 
-    writeString("<< = NAO");
+    writeString("<< = NAO", 8);
 
     while(1){
         if(BTN_OK)
             return 1;   // configurar outro horario
-        else
+        if(BTN_RETURN)
             return 0;   // proximo passo
     }
     
@@ -326,13 +310,13 @@ int printConfirmacao(){
 
 int configuraQuantidade(){
     int quantidade = 1;
-    char quantidade_c[2];
-    itoa(quantidade,quantidade_c,10);
+    char quantidade_c = quantidade + '0';
     
     gotoxy(0, 0); 
-    writeString("Quantidade:");
+    writeString("Quantidade:", 11);
     gotoxy(0, 1);
-    writeString(quantidade_c);
+    writeChar(quantidade_c);
+    writeString("00 Gramas", 9);
     
     int botaoUP = 0;
     int botaoDOWN = 0;
@@ -342,29 +326,23 @@ int configuraQuantidade(){
         if(BTN_UP && botaoUP == 0){
             botaoUP = 1;
             quantidade += 1;
-            if(quantidade > 10) quantidade = 0;
-            if(quantidade < 0) quantidade = 10;
-            itoa(quantidade,quantidade_c,10);
-            if(quantidade < 10){
-                quantidade_c[1] = quantidade_c[0];
-                quantidade_c[0] = '0';
-            }
+            if(quantidade > 5) quantidade = 1;
+            if(quantidade < 0) quantidade = 5;
+            quantidade_c = quantidade + '0';
             gotoxy(0, 1);
-            writeString(quantidade_c);
+            writeChar(quantidade_c);
+            writeString("00 Gramas", 9);
         }
         if(!BTN_DOWN) botaoDOWN = 0;
         if(BTN_DOWN && botaoDOWN == 0){
             botaoDOWN = 1;
             quantidade -= 1;
-            if(quantidade > 10) quantidade = 0;
-            if(quantidade < 0) quantidade = 10;
-            itoa(quantidade,quantidade_c,10);
-            if(quantidade < 10){
-                quantidade_c[1] = quantidade_c[0];
-                quantidade_c[0] = '0';
-            }
+            if(quantidade > 5) quantidade = 1;
+            if(quantidade < 0) quantidade = 5;
+            quantidade_c = quantidade + '0';
             gotoxy(0, 1);
-            writeString(quantidade_c);
+            writeChar(quantidade_c);
+            writeString("00 Gramas", 9);
         }
     }
     
@@ -373,30 +351,31 @@ int configuraQuantidade(){
     return quantidade;
 }
 
-void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
+void configuraHorarioAtual(char hora[], char minuto[], char segundo[]){
     int hora_I, minuto_I, segundo_I;
     hora_I = atoi(hora); // converte string para inteiro
     minuto_I = atoi(minuto);
     segundo_I = atoi(segundo);
     
     gotoxy(0, 0); 
-    writeString("Informe");
+    writeString("Informe", 7);
     gotoxy(0, 1); 
-    writeString("horario:");
-    gotoxy(0, 3);
-    writeString(hora);
-    gotoxy(2, 3);
+    writeString("horario:", 8);
+    gotoxy(0, 2);
+    writeString(hora, 2);
+    gotoxy(2, 2);
     writeChar(':');
-    gotoxy(3, 3);
-    writeString(minuto);
-    gotoxy(5, 3);
+    gotoxy(3, 2);
+    writeString(minuto, 2);
+    gotoxy(5, 2);
     writeChar(':');
-    gotoxy(6, 3);
-    writeString(segundo);
+    gotoxy(6, 2);
+    writeString(segundo, 2);
    
     int botaoUP = 0;
     int botaoDOWN = 0;   
-    //horas
+    horas:
+    
     while(!BTN_OK){
         if(!BTN_UP) botaoUP = 0;
         if(BTN_UP && botaoUP == 0){
@@ -409,9 +388,11 @@ void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
                 hora[1] = hora[0];
                 hora[0] = '0';
             }
-            gotoxy(0, 3);
-            writeString(hora);
-            gotoxy(2, 3);
+            gotoxy(0, 2);
+            writeString(hora, 2);
+            gotoxy(2, 2);
+            writeChar(':');
+            gotoxy(5, 2);
             writeChar(':');
         }
         if(!BTN_DOWN) botaoDOWN = 0;
@@ -425,14 +406,18 @@ void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
                 hora[1] = hora[0];
                 hora[0] = '0';
             }
-            gotoxy(0, 3);
-            writeString(hora);
-            gotoxy(2, 3);
+            gotoxy(0, 2);
+            writeString(hora, 2);
+            gotoxy(2, 2);
+            writeChar(':');
+            gotoxy(5, 2);
             writeChar(':');
         }
     }    
     __delay_ms(500);
-    //minutos
+    minutos:
+    botaoUP = 0;
+    botaoDOWN = 0;   
     while(!BTN_OK){
         if(!BTN_UP) botaoUP = 0;
         if(BTN_UP && botaoUP == 0){
@@ -441,14 +426,16 @@ void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
             if(minuto_I > 59) minuto_I = 0;
             if(minuto_I < 0) minuto_I = 59;
             itoa(minuto_I, minuto, 10); // converte inteiro para string
-            if(hora_I < 10){
+            if(minuto_I < 10){
                 minuto[1] = minuto[0];
                 minuto[0] = '0';    // ex: 09, 08, 07...
             }
-            gotoxy(2, 3);
+            gotoxy(2, 2);
             writeChar(':');
-            gotoxy(3, 3);
-            writeString(minuto);
+            gotoxy(3, 2);
+            writeString(minuto, 2);
+            gotoxy(5, 2);
+            writeChar(':');
         }
         if(!BTN_DOWN) botaoDOWN = 0;
         if(BTN_DOWN && botaoDOWN == 0){
@@ -461,13 +448,23 @@ void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
                 minuto[1] = minuto[0];
                 minuto[0] = '0';
             }
-            gotoxy(2, 3);
+            gotoxy(2, 2);
             writeChar(':');
-            gotoxy(3, 3);
-            writeString(minuto);
+            gotoxy(3, 2);
+            writeString(minuto, 2);
+            gotoxy(5, 2);
+            writeChar(':');
+        }
+        if(BTN_RETURN){
+            __delay_ms(500);
+            goto horas;
         }
     }
      __delay_ms(500);
+     
+    botaoUP = 0;
+    botaoDOWN = 0;  
+     
     //segundos
     while(!BTN_OK){
         if(!BTN_UP) botaoUP = 0;
@@ -478,40 +475,47 @@ void configuraHorarioAtual(char *hora[], char *minuto[], char *segundo[]){
             if(segundo_I < 0) segundo_I = 59;
             itoa(segundo_I, segundo, 10); // converte inteiro para string
             if(segundo_I < 10){
-                segundo_I[1] = segundo_I[0];
-                segundo_I[0] = '0';    // ex: 09, 08, 07...
+                segundo[1] = segundo[0];
+                segundo[0] = '0';    // ex: 09, 08, 07...
             }
-            gotoxy(5, 3);
+            gotoxy(5, 2);
             writeChar(':');
-            gotoxy(6, 3);
-            writeString(segundo_I);
+            gotoxy(6, 2);
+            writeString(segundo, 2);
         }
         if(!BTN_DOWN) botaoDOWN = 0;
         if(BTN_DOWN && botaoDOWN == 0){
             botaoDOWN = 1;
             segundo_I -= 1;
             if(segundo_I > 59) segundo_I = 0;
-            if(segundo_I < 0) segundo = 59;
+            if(segundo_I < 0) segundo_I = 59;
             itoa(segundo_I,segundo,10);
             if(segundo_I < 10){
-                segundo_I[1] = segundo[0];
-                segundo_I[0] = '0';
+                segundo[1] = segundo[0];
+                segundo[0] = '0';
             }
-            gotoxy(5, 3);
+            gotoxy(5, 2);
             writeChar(':');
-            gotoxy(6, 3);
-            writeString(minuto);
+            gotoxy(6, 2);
+            writeString(segundo, 2);
+        }
+        if(BTN_RETURN){
+            __delay_ms(500);
+            goto minutos;
         }
     }
     __delay_ms(500);
 }
 
-// nao funciona
-unsigned char converteBinario(char str_decimal){
-    switch (str_decimal){
-        case '0':
-            return 0b00000000;
-            break;
+void ordenaMatriz(char matriz[][4]){
+    for(int i=0; i < 3; i++){
+        for(int j=0; j < 3; j++){
+            int auxI = atoi(matriz[i]);
+            int auxJ = atoi(matriz[j]);
+            if(auxJ < auxI){
+                char bixoNaoSei;
+            }
+        }
     }
 }
 
@@ -521,18 +525,21 @@ void main(void) {
     pLCD = &PORTD;  // LCD le a porta D diretamente para configuracoes iniciais
     
     gotoxy(0, 0); 
-    writeString("Iniciando");
+    writeString("Iniciando", 9);
     gotoxy(0, 1);
-    writeString("dispositivo...");
+    writeString("dispositivo...", 14);
      __delay_ms(1000);   
     sendCMD(CLEAR);
     
     char horaAtual[2] = "00";
     char minutoAtual[2] = "00";
     char segundoAtual[2] = "00";
-    do{
-        configuraHorarioAtual(&horaAtual, &minutoAtual, &segundoAtual);
-        // DADO = segundoAtual; // converter para hexadecimal
+
+    configuraHorarioAtual(horaAtual, minutoAtual, segundoAtual);
+    int horaAtualInt = (int)strtol(horaAtual, NULL, 16);
+    int minutoAtualInt = (int)strtol(minutoAtual, NULL, 16);
+    int segundoAtualInt = (int)strtol(segundoAtual, NULL, 16);
+    // DADO = segundoAtual; // converter para hexadecimal
         // ENDL = 3; 
         // configura horario atual no PCF
                 /*  ENDL    -   DEFINIR HORARIO ATUAL
@@ -544,20 +551,77 @@ void main(void) {
          *  8   =   Meses
          *  8   =   Ano    
          */
-    }while(1);
+    ENDL= 3; //segundos
+    ESCRITA_PCF8523T(ENDH, ENDL, segundoAtualInt);						//escreve dado na EEPROM
+	__delay_ms(10);
+    ENDL= 4; //minutos
+    ESCRITA_PCF8523T(ENDH, ENDL, minutoAtualInt);						//escreve dado na EEPROM
+    ENDL= 5; //horas
+    ESCRITA_PCF8523T(ENDH, ENDL, horaAtualInt);						//escreve dado na EEPROM
+	__delay_ms(10);
     
-    char hora[2] = "00";
-    char minuto[2] = "00";
+    char horaAlarme[2] = "00";
+    char minutoAlarme[2] = "00";
+    char tabelaAlarmes[3][4];
+    int quantidadeAlarmes = 0;
+    
     do{
-        configuraHorario(hora, minuto);
-        // adicionar a hora e minuto para o alarme do PCF
+        sendCMD(CLEAR);
+        configuraAlarme(horaAlarme, minutoAlarme);
+        tabelaAlarmes[quantidadeAlarmes][0] = horaAlarme[0];
+        tabelaAlarmes[quantidadeAlarmes][1] = horaAlarme[1];
+        tabelaAlarmes[quantidadeAlarmes][2] = minutoAlarme[0];
+        tabelaAlarmes[quantidadeAlarmes][3] = minutoAlarme[1];
+        quantidadeAlarmes += 1;
+        horaAlarme[0] = '0';
+        horaAlarme[1] = '0';
+        minutoAlarme[0] = '0';
+        minutoAlarme[1] = '0';
 
-    }while(printConfirmacao());
+    }while(printConfirmacao() && quantidadeAlarmes < 3);
     
     sendCMD(CLEAR);
     int quantidade = configuraQuantidade();
     
-    while(1){}      // Loop
+//    sendCMD(CLEAR);
+//    ordenaMatriz(tabelaAlarmes);
+    
+    DADO = 0b00000010; // Ativa a interrupcao por alarme
+    ENDL = 0; // Register Control_1
+    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
+    DADO = 0b00001000; // Seta flag quando alarme é disparado, limpa flag quando não há interrupção
+    ENDL = 1; // Register Control_2
+    ESCRITA_PCF8523T(ENDH, ENDL, DADO);
+    
+    int alarmeAtual = 0;
+    
+    char minutoAlarmeDispositivo[2];
+    minutoAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][2];
+    minutoAlarmeDispositivo[1] = tabelaAlarmes[alarmeAtual][3];
+    int minutoAlarmeDispositivoInt = (int)strtol(minutoAlarmeDispositivo, NULL, 16);
+    ENDL = 10; //minuto alarme
+    ESCRITA_PCF8523T(ENDH, ENDL, 0b00000011);						//escreve dado na EEPROM
+    
+    char horaAlarmeDispositivo[2];
+    horaAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][0];
+    horaAlarmeDispositivo[1] = tabelaAlarmes[alarmeAtual][1];
+    int horaAlarmeDispositivoInt = (int)strtol(minutoAlarmeDispositivo, NULL, 16);
+    ENDL = 11; //hora alarme
+    ESCRITA_PCF8523T(ENDH, ENDL, 0b00000010);						//escreve dado na EEPROM
+    
+    PR2 = 199;                  //periodo de 5000Hz para um oscilador de 16MHz
+    CCPR1L = 0;               //Duty Cycle de 50%
+    CCP1CONbits.DC1B = 0;       //dois bits menos significativos como zero
+    CCP1CONbits.CCP1M = 0x0C;   //configura modulo CCP para operar como PWM (00001100)
+    T2CON = 0x05;               //Prescaler TMR2 como 1:4 ativando timer 2
+    CCPR1L = 199;
+    
+    while(1){
+        PORTCbits.RC2 = 1;
+        if(PORTBbits.RB4){
+            PORTCbits.RC0 = 1;
+        }
+    }      // Loop
     return;         // Fim do programa
         
     /*
