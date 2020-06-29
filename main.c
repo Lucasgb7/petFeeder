@@ -190,6 +190,13 @@ char* itoa(int value, char* result, int base_numerica) {
     return result;
 }
 
+//void unsignedCharToChar(unsigned char *a, char b[], int tam){
+//    for(int i=0; i < tam; i++){
+//        b[i] = *a;
+//        a++;
+//    }
+//}
+
 // Funcoes de configuracao do petfeeder
 void configuraAlarme(char horaAlarme[], char minutoAlarme[]){
     int horaAlarme_I, minutoAlarme_I;
@@ -507,6 +514,66 @@ void configuraHorarioAtual(char hora[], char minuto[], char segundo[]){
     __delay_ms(500);
 }
 
+int configuraSom(){
+    gotoxy(0, 0); 
+    writeString("Acionar som", 11);
+    gotoxy(0, 1); 
+    writeString("ao despejar?", 12);
+    gotoxy(0, 2); 
+    writeString("OK = SIM", 8);
+    gotoxy(0, 3); 
+    writeString("<< = NAO", 8);
+
+    while(1){
+        if(BTN_OK)
+            return 1;   // configurar outro horario
+        if(BTN_RETURN)
+            return 0;   // proximo passo
+    }
+    
+    __delay_ms(500);
+}
+
+void exibeInformacoes(char horaAtual[], char minutoAtual[], char proxHora[], char proxMinuto[], char ultHora[], char ultMinuto[]){
+    gotoxy(0, 0); 
+    writeString("Horario: ", 10); 
+    writeString(horaAtual, 2);
+    writeChar(':');
+    writeString(minutoAtual, 2);
+    gotoxy(0, 1);
+    writeString("proxima: ", 10);
+    writeString(proxHora, 2);
+    writeChar(':');
+    writeString(proxMinuto, 2);
+    gotoxy(0, 2);
+    writeString("anterior: ", 10);
+    writeString(ultHora, 2);
+    writeChar(':');
+    writeString(ultMinuto, 2);
+}
+
+void exibeDespejando(int quantidade){
+    char quantidadeC = quantidade + '0';
+    sendCMD(CLEAR);
+    gotoxy(0, 0); 
+    writeString("Despejando", 10);
+    gotoxy(0, 1); 
+    writeChar(quantidadeC);
+    writeString("00 Gramas", 9);
+    gotoxy(0, 2); 
+    writeString("de racao", 8);
+}
+
+void setAlarme(char hora[], char minuto[]){
+    int horaInt = (int)strtol(hora, NULL, 16);
+    ENDL = 11; //hora alarme
+    ESCRITA_PCF8523T(ENDH, ENDL, horaInt);
+    
+    int minutoInt = (int)strtol(minuto, NULL, 16);
+    ENDL = 10; //minuto alarme
+    ESCRITA_PCF8523T(ENDH, ENDL, minutoInt);
+}
+
 void ordenaMatriz(char matriz[][4]){
     for(int i=0; i < 3; i++){
         for(int j=0; j < 3; j++){
@@ -517,6 +584,34 @@ void ordenaMatriz(char matriz[][4]){
             }
         }
     }
+}
+
+void despejarRacao(int som, int quantidade){
+    //ativa o motor
+    CCPR1L = 199;
+            
+    //liga o led
+    PORTCbits.RC0 = 1;
+            
+    //liga buzzer caso configurado
+    if(som) PORTDbits.RD3 = 1;
+            
+    exibeDespejando(quantidade);
+            
+    for(int i=0; i < quantidade; i++){
+        __delay_ms(1000);
+    }
+}
+
+void paraDespejar(){
+    //desliga o motor
+    CCPR1L = 0;
+            
+    //desliga o led
+    PORTCbits.RC0 = 0;
+            
+    //desliga som
+    PORTDbits.RD3 = 0;
 }
 
 void main(void) {
@@ -583,6 +678,9 @@ void main(void) {
     sendCMD(CLEAR);
     int quantidade = configuraQuantidade();
     
+    sendCMD(CLEAR);
+    int som = configuraSom();
+    
 //    sendCMD(CLEAR);
 //    ordenaMatriz(tabelaAlarmes);
     
@@ -598,29 +696,69 @@ void main(void) {
     char minutoAlarmeDispositivo[2];
     minutoAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][2];
     minutoAlarmeDispositivo[1] = tabelaAlarmes[alarmeAtual][3];
-    int minutoAlarmeDispositivoInt = (int)strtol(minutoAlarmeDispositivo, NULL, 16);
-    ENDL = 10; //minuto alarme
-    ESCRITA_PCF8523T(ENDH, ENDL, 0b00000011);						//escreve dado na EEPROM
     
     char horaAlarmeDispositivo[2];
     horaAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][0];
     horaAlarmeDispositivo[1] = tabelaAlarmes[alarmeAtual][1];
-    int horaAlarmeDispositivoInt = (int)strtol(minutoAlarmeDispositivo, NULL, 16);
-    ENDL = 11; //hora alarme
-    ESCRITA_PCF8523T(ENDH, ENDL, 0b00000010);						//escreve dado na EEPROM
     
-    PR2 = 199;                  //periodo de 5000Hz para um oscilador de 16MHz
+    char proxAlarmeHora[2];
+    proxAlarmeHora[0] = tabelaAlarmes[alarmeAtual+1][2];
+    proxAlarmeHora[1] = tabelaAlarmes[alarmeAtual+1][3];
+    
+    char proxAlarmeMinuto[2];
+    proxAlarmeMinuto[0] = tabelaAlarmes[alarmeAtual+1][0];
+    proxAlarmeMinuto[1] = tabelaAlarmes[alarmeAtual+1][1];
+    
+    setAlarme(horaAlarmeDispositivo, minutoAlarmeDispositivo);
+    
+    PR2 = 199;                //periodo de 5000Hz para um oscilador de 16MHz
     CCPR1L = 0;               //Duty Cycle de 50%
-    CCP1CONbits.DC1B = 0;       //dois bits menos significativos como zero
-    CCP1CONbits.CCP1M = 0x0C;   //configura modulo CCP para operar como PWM (00001100)
-    T2CON = 0x05;               //Prescaler TMR2 como 1:4 ativando timer 2
-    CCPR1L = 199;
+    CCP1CONbits.DC1B = 0;     //dois bits menos significativos como zero
+    CCP1CONbits.CCP1M = 0x0C; //configura modulo CCP para operar como PWM (00001100)
+    T2CON = 0x05;             //Prescaler TMR2 como 1:4 ativando timer 2
+    
+    sendCMD(CLEAR);
     
     while(1){
-        PORTCbits.RC2 = 1;
-        if(PORTBbits.RB4){
-            PORTCbits.RC0 = 1;
+        char dadoHoraAtual[2];
+        char dadoMinutoAtual[2];
+        char dadoMinuto;
+//        ENDL=5;
+//        unsignedCharToChar(LEITURA_PCF8523T(ENDH, ENDL), dadoHora, 2);
+        
+//        ENDL=4;
+//        unsignedCharToChar(LEITURA_PCF8523T(ENDH, ENDL), dadoMinuto, 2);
+        if(dadoMinutoAtual[1] != dadoMinuto){
+            exibeInformacoes(dadoHoraAtual, dadoMinutoAtual, horaAlarmeDispositivo, minutoAlarmeDispositivo, proxAlarmeHora, proxAlarmeMinuto);
+            dadoMinuto = dadoMinutoAtual[1];
         }
+        if(PORTBbits.RB4){
+            despejarRacao(som, quantidade);
+            paraDespejar();
+            
+            alarmeAtual += 1;
+            if(alarmeAtual == 3)
+                alarmeAtual = 0;
+
+            horaAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][0];
+            horaAlarmeDispositivo[1] = tabelaAlarmes[alarmeAtual][1];
+            
+            minutoAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][2];
+            minutoAlarmeDispositivo[1] = tabelaAlarmes[alarmeAtual][3];
+
+            setAlarme(horaAlarmeDispositivo, minutoAlarmeDispositivo);
+            
+            proxAlarmeHora[0] = tabelaAlarmes[alarmeAtual+1][2];
+            proxAlarmeHora[1] = tabelaAlarmes[alarmeAtual+1][3];
+            
+            proxAlarmeMinuto[0] = tabelaAlarmes[alarmeAtual+1][0];
+            proxAlarmeMinuto[1] = tabelaAlarmes[alarmeAtual+1][1];
+        }
+        if(BTN_OK){
+            despejarRacao(som, quantidade);
+            paraDespejar();
+        }
+        __delay_ms(10);
     }      // Loop
     return;         // Fim do programa
         
