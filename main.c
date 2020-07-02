@@ -8,6 +8,7 @@
  * Created on June 4, 2020, 2:02 PM
  */
 #include <xc.h>
+#include <pic18f4520.h>
 #include "I2C_Master.h"
 
 #pragma config MCLRE = ON, WDT = OFF, OSC = HS
@@ -42,6 +43,32 @@ typedef struct tDisplayPort{
     char NData: 4;
 };
 struct tDisplayPort * pLCD;
+
+// Funcao para ler da memoria EEPROM
+unsigned char readEEPROM(unsigned char address){
+    EEADR = address; // Endereco para ser lido
+    EECON1bits.EEPGD = 0; // Seleciona a Memoria de Dados EEPROM
+    EECON1bits.RD = 1; // Inicializa o ciclo de leitura
+    return EEDATA; // Retorna o dado 
+}
+
+// Funcao para escrever na memoria EEPROM
+void writeEEPROM(unsigned char address, unsigned char data) {
+    unsigned char INTCON_SAVE; // Salvar o valor do registrador INTCON
+    EEADR = address; // Endereco para escrever
+    EEDATA = data; // Dado para escrever
+    EECON1bits.EEPGD = 0; // Seleciona a Memoria de Dados EEPROM
+    EECON1bits.WREN = 1; // Habilita escrita na EEPROM
+    INTCON_SAVE=INTCON; // Backup regsitrador INCON 
+    INTCON=0; // Desabilita interrupcao
+    EECON2=0x55; // Sequencia para escrever na EEPROM
+    EECON2=0xAA; // Sequencia para escrever na EEPROM
+    EECON1bits.WR = 1; // Inicializa o ciclo de escrita
+    INTCON = INTCON_SAVE; // Habilita a escrita
+    EECON1bits.WREN = 0; // Desabilita a escrita
+    while(PIR2bits.EEIF == 0); // Checa por outra operacao de escrita 
+    PIR2bits.EEIF = 0; // Limpa o bit EEIF
+}
 
 // Ativa e desativa o 'enable' para um pulso
 void pulseEnable(){ 
@@ -753,6 +780,8 @@ int exibeMenu(){
         }else if(BTN_OK){
             __delay_ms(500);
             return opcao;
+        }else{
+            return 5;
         }
         __delay_ms(10);
     }
@@ -768,7 +797,7 @@ void setAlarme(char hora[], char minuto[]){
     ESCRITA_PCF8523T(ENDH, ENDL, minutoChar);
 }
 
-//nao ta funcionando
+// Funcao para ordenar a matriz
 void ordenaMatriz(char matriz[][4], int quantidade){
     for(int i=0; i < quantidade; i++){
         for(int j=i; j < quantidade; j++){
@@ -792,6 +821,28 @@ void ordenaMatriz(char matriz[][4], int quantidade){
             }
         }
     }
+}
+
+void armazenaEEPROM(unsigned char tabelaAlarmes, unsigned int alarmeAtual){
+    unsigned int endereco = 0;
+    
+    writeEEPROM(endereco, tabelaAlarmes[alarmeAtual][0]);
+    writeEEPROM(endereco+1, tabelaAlarmes[alarmeAtual][1]);
+    
+    char minutoAlarmeDispositivo[2];
+    minutoAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][2];
+    minutoAlarmeDispositivo[1] = tabelaAlarmes[alarmeAtual][3];
+    
+    int alarmeAnterior = alarmeAtual - 1;
+    if(alarmeAnterior < 0) alarmeAnterior = quantidadeAlarmes-1;
+    
+    char antAlarmeHora[2];
+    antAlarmeHora[0] = tabelaAlarmes[alarmeAnterior][0];
+    antAlarmeHora[1] = tabelaAlarmes[alarmeAnterior][1];
+    
+    char antAlarmeMinuto[2];
+    antAlarmeMinuto[0] = tabelaAlarmes[alarmeAnterior][2];
+    antAlarmeMinuto[1] = tabelaAlarmes[alarmeAnterior][3];
 }
 
 int encontraAlarmeAtual(char tabelaAlarmes[][4], char horaAtual[], char minutoAtual[], int quantidade){
@@ -844,6 +895,7 @@ void main(void) {
     setup(); // configuracoes iniciais
     start(); // inicía o LCD
     pLCD = &PORTD;  // LCD le a porta D diretamente para configuracoes iniciais
+    unsigned int endereco_eeprom = 0x00;
     
     gotoxy(0, 0); 
     writeString("Iniciando", 9);
@@ -852,9 +904,9 @@ void main(void) {
      __delay_ms(1000);   
     sendCMD(CLEAR);
     
-    char horaAtual[2] = "00";
-    char minutoAtual[2] = "00";
-    char segundoAtual[2] = "00";
+    unsigned char horaAtual[2] = "00";
+    unsigned char minutoAtual[2] = "00";
+    unsigned char segundoAtual[2] = "00";
 
     configuraHorarioAtual(horaAtual, minutoAtual, segundoAtual);
     char horaAtualChar = converteHex(horaAtual);
@@ -873,7 +925,7 @@ void main(void) {
          *  8   =   Ano    
          */
     ENDL= 3; //segundos
-    ESCRITA_PCF8523T(ENDH, ENDL, segundoAtualchar);
+    ESCRITA_PCF8523T(ENDH, ENDL, segundoAtualchar); // escreve no módulo RTC
 	__delay_ms(10);
     
     ENDL= 4; //minutos
@@ -887,7 +939,7 @@ void main(void) {
     char horaAlarme[2];
     char minutoAlarme[2];
     char tabelaAlarmes[3][4];
-    int quantidadeAlarmes = 0;
+    unsigned int quantidadeAlarmes = 0;
     
     int sair = 0;
     do{
@@ -899,10 +951,11 @@ void main(void) {
         configuraAlarme(horaAlarme, minutoAlarme);
         tabelaAlarmes[quantidadeAlarmes][0] = horaAlarme[0];
         tabelaAlarmes[quantidadeAlarmes][1] = horaAlarme[1];
+        
         tabelaAlarmes[quantidadeAlarmes][2] = minutoAlarme[0];
         tabelaAlarmes[quantidadeAlarmes][3] = minutoAlarme[1];
-        quantidadeAlarmes += 1;
         
+        quantidadeAlarmes += 1;
         if(quantidadeAlarmes > 2) sair = 1;
         else if(printConfirmacao() == 0) sair = 1;
     }while(sair == 0);
@@ -910,6 +963,7 @@ void main(void) {
     ordenaMatriz(tabelaAlarmes, quantidadeAlarmes);
     
     int alarmeAtual = encontraAlarmeAtual(tabelaAlarmes, horaAtual, minutoAtual, quantidadeAlarmes);
+    armazenaEEPROM(alarmeAtual);
     
     char horaAlarmeDispositivo[2];
     horaAlarmeDispositivo[0] = tabelaAlarmes[alarmeAtual][0];
@@ -932,9 +986,11 @@ void main(void) {
     
     setAlarme(horaAlarmeDispositivo, minutoAlarmeDispositivo);
     
-    int quantidade = configuraQuantidade();
+    unsigned int quantidade = configuraQuantidade();
+    writeEEPROM(0x08, quantidade);  //  escreve na memoria EEPROM (1 byte)
     
-    int som = configuraSom();
+    unsigned int som = configuraSom();
+    writeEEPROM(0x09, som);     // escreve na memoria EEPROM (1 byte)
     
     PR2 = 199;                //periodo de 5000Hz para um oscilador de 16MHz
     CCPR1L = 0;               //Duty Cycle de 50%
@@ -952,7 +1008,7 @@ void main(void) {
     while(1){
         if(i % 500 == 0){
             leituraHora(dadoHoraAtual);
-            exibeInformacoes(dadoHoraAtual, horaAlarmeDispositivo, minutoAlarmeDispositivo, antAlarmeHora, antAlarmeMinuto, quantidade + '0');
+            exibeInformacoes(dadoHoraAtual, horaAlarmeDispositivo, minutoAlarmeDispositivo, antAlarmeHora, antAlarmeMinuto, readEEPROM(0x08) + '0');
         }
         if(PORTBbits.RB4){
             despejarRacao(som, quantidade);
@@ -1028,7 +1084,7 @@ void main(void) {
                 quantidade = configuraQuantidade();
             }else if(opcao == 3){ //configura som
                 som = configuraSom();
-            }else{
+            }else if(opcao == 4){ // configura 
                 sendCMD(CLEAR);
                 configuraHorarioAtual(horaAtual, minutoAtual, segundoAtual);
                 horaAtualChar = converteHex(horaAtual);
@@ -1047,26 +1103,8 @@ void main(void) {
         }
         i++;
         __delay_ms(10);
-    }      // Loop
-    return;         // Fim do programa
-        
-    /*
-    1º Ligar dispositivo
-     * Ascender LED de indicação (ON/OFF) [Controlado no PROTEUS]
-     * Mostrar no display mensagem de inicialização (Ex.: "Iniciando dispositivo...")
-
-    2º Mensagens
-     * Verificar se já tem configuração pre estabelecida
-     * Informar horário de despejo
-     * Informar quantidade a ser despejada
-     * Configurar botoes de OK, Voltar, + e -
-     * Confirmação de configuração (OK)
-     
-    3º Estudar função alarme do módulo RTC
-     * Analisar a posibilidade de mais de um alarme
-     
-    4º Verificar a força e tempo do motor
-    */    
+    }
+    return; // --------------- FIM DO PROGRAMA ---------------
 }
 
 // Funcao de escrita do PCF8523

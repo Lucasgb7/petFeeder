@@ -9,7 +9,7 @@
 Esta biblioteca contém um conjunto de funções que permitem ao microcontrolador
 se comunicar com qualquer dispositivo via I2C. O microcontrolador deve
 estar configurado como dispositivo mestre. 
-//********************************************************************/
+/********************************************************************/
 #ifndef __I2C_MASTER_H
 #define __I2C_MASTER_H
 /********************************************************************/
