@@ -13,6 +13,13 @@ estar configurado como dispositivo mestre.
 #ifndef __I2C_MASTER_H
 #define __I2C_MASTER_H
 /********************************************************************/
+// PCF8523
+char buf [17];
+unsigned char ENDH = 0b11010000; // Endereco para o PCF8523T
+unsigned char ENDL = 1;
+char DADO;
+unsigned char TEMP;
+
 char I2C_LIVRE  (void);
 void I2C_START (void); 
 void I2C_RESTART  (void);
@@ -24,5 +31,8 @@ unsigned char I2C_RECEBE  (void);
 void I2C_ACK  (void);
 void I2C_NACK  (void);
 unsigned char I2C_LEITURA (unsigned char END_I2C);
+unsigned char ESCRITA_PCF8523T (unsigned char ENDH, unsigned char ENDL, char DADO);
+unsigned char LEITURA_PCF8523T (unsigned char _ENDH, unsigned char _ENDL);
+void leituraHora(char *hour);
 //********************************************************************
 #endif

@@ -141,4 +141,104 @@ unsigned char I2C_LEITURA (unsigned char END_I2C)	//função I2C_LEITURA
 		I2C_STOP();						//gera bit STOP
 		return DADO_I2C;				//transmissão feita com sucesso
 	}
-}//*********************************************************************
+}
+
+// Funcao de escrita do PCF8523
+unsigned char ESCRITA_PCF8523T (unsigned char ENDH, unsigned char ENDL, char DADO){
+    char x;								//declaração de variável local 
+	x = I2C_LIVRE ();					//chamada à função com retorno de valor. Verifica se barramento está livre
+	if (x == 0)							//se barramento ocupado, aborta transmissão e retorna
+	{
+		I2C_STOP();						//gera bit STOP
+		return -1;						//erro na transmissão
+	}
+	else 								//barramento livre
+	{
+		I2C_START();					//barramento livre, gera condição START
+		//TEMP= ENDH << 1;				//rotaciona END_I2C para a esquerda (insere bit R_W para escrita)  - nao precisa, pq meu endereco ja ta certo
+		I2C_TRANSMITE(ENDH);			//transmite endereço alto
+		if (!I2C_TESTA_ACK())	 		//se erro na transmissão, aborta transmissão
+		{
+			I2C_STOP();					//gera bit STOP
+			return -1;					//erro na transmissão
+ 		}
+		I2C_TRANSMITE(ENDL);			//transmite endereço baixo
+		if (!I2C_TESTA_ACK())			//se erro na transmissão, aborta transmissão
+		{
+			I2C_STOP();					//gera bit STOP
+			return -1;					//erro na transmissão
+		}
+		I2C_TRANSMITE(DADO);			//transmite dado
+		if (!I2C_TESTA_ACK())	 		//se erro na transmissão, aborta transmissão
+		{
+			I2C_STOP();					//gera bit STOP
+			return -1;					//erro na transmissão
+ 		}
+		I2C_STOP();						//gera bit STOP
+        
+        
+		return DADO;					//transmissão feita com sucesso
+	}
+}
+
+// Funcao de leitura do PCF8523T
+unsigned char LEITURA_PCF8523T (unsigned char _ENDH, unsigned char _ENDL){
+	char x;								//declaração de variável local 
+	unsigned char DADO_I2C;				//declaração de variável local 
+	x = I2C_LIVRE ();					//chamada à função com retorno de valor. Verifica se barramento está livre
+	if (x == 0)							//se barramento ocupado, aborta transmissão e retorna
+	{
+		I2C_STOP();						//gera bit STOP
+		return -1;						//erro na transmissão
+	}
+	else 								//barramento livre
+	{
+		I2C_START();					//barramento livre, gera condição START
+		//TEMP = _ENDH << 1;				//rotaciona END_I2C para a esquerda - nao precisa, pq meu endereco ja ta certo
+		I2C_TRANSMITE(_ENDH);			//transmite endereço
+		if (!I2C_TESTA_ACK()) 			//se erro na transmismite endereço
+		if (!I2C_TESTA_ACK()) 			//se erro na trassão, aborta transmissão
+		{
+			I2C_STOP();					//gera bit STOP
+			return -1;					//erro na transmissão
+ 		}
+		I2C_TRANSMITE(_ENDL);			//transmite endereço baixo
+		if (!I2C_TESTA_ACK())			//se erro na transmissão, aborta transmissão
+		{
+			I2C_STOP();					//gera bit STOP
+			return -1;					//erro na transmissão
+		}
+		I2C_RESTART();
+        TEMP = _ENDH;                   // passa o endereço para o TEMP
+		TEMP |= 0b00000001;				//insere bit R_W para leitura
+		I2C_TRANSMITE(TEMP);			//transmite endereço
+		if (!I2C_TESTA_ACK()) 			//se erro na transmissão, aborta transmissão
+		{
+			I2C_STOP();					//gera bit STOP
+			return -1;					//erro na transmissão
+ 		}
+		DADO_I2C = I2C_RECEBE();		//recebe dado
+		I2C_NACK();						//gera bit NACK
+		I2C_STOP();						//gera bit STOP
+        
+		return DADO_I2C;				//transmissão feita com sucesso
+	}
+}
+
+void leituraHora(char *hour){
+    char vet[] = {'0','1','2','3','4','5','6'};
+    
+    int j = 0;
+    for(int i = 5;i >= 4; i--)
+    {
+        ENDL = i;
+        hour[j] = vet[LEITURA_PCF8523T(ENDH, ENDL)>>4];
+        j++;
+        hour[j] = vet[LEITURA_PCF8523T(ENDH, ENDL)&0x0F];
+        j++;
+        if(i > 4)
+            hour[j] = ':';
+        j++;
+    }
+}
+//*********************************************************************
