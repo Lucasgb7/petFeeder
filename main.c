@@ -808,7 +808,8 @@ void main(void) {
     unsigned char horaAtual[2] = "00";
     unsigned char minutoAtual[2] = "00";
     unsigned char segundoAtual[2] = "00";
-    char horaAlarme[2], minutoAlarme[2], tabelaAlarmes[3][4], horaAlarmeDispositivo[2], minutoAlarmeDispositivo[2], antAlarmeHora[2], antAlarmeMinuto[2];
+    char horaAlarme[2]="00", minutoAlarme[2]="00", tabelaAlarmes[3][4]={"0000","0000","0000"};
+    char horaAlarmeDispositivo[2]="00", minutoAlarmeDispositivo[2]="00", antAlarmeHora[2]="00", antAlarmeMinuto[2]="00";
     unsigned int quantidadeAlarmes, alarmeAtual, alarmeAnterior, quantidade, som, sair;
     
     if(readEEPROM(0x00) == '1'){ // caso tenha dados na memoria, carrega a mesma
@@ -851,7 +852,7 @@ void main(void) {
             else if(printConfirmacao() == 0) sair = 1;
         }while(sair == 0);
 
-        ordenaMatriz(tabelaAlarmes, quantidadeAlarmes);
+        //ordenaMatriz(tabelaAlarmes, quantidadeAlarmes);
 
         armazenaAlarmeEEPROM(tabelaAlarmes, quantidadeAlarmes);
         writeEEPROM(0x0D, quantidadeAlarmes);
@@ -884,8 +885,8 @@ void main(void) {
         if(alarmeAnterior < 0) alarmeAnterior = quantidadeAlarmes-1;
     }
     
-    antAlarmeHora[0] = tabelaAlarmes[alarmeAnterior][0];
-    antAlarmeHora[1] = tabelaAlarmes[alarmeAnterior][1];
+    antAlarmeHora[0] = tabelaAlarmes[1][0];
+    antAlarmeHora[1] = tabelaAlarmes[1][1];
 
     antAlarmeMinuto[0] = tabelaAlarmes[alarmeAnterior][2];
     antAlarmeMinuto[1] = tabelaAlarmes[alarmeAnterior][3];
