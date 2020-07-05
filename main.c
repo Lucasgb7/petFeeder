@@ -101,8 +101,8 @@ char* itoa(int value, char* result, int base_numerica) {
 }
 
 // converte char em hexadecimal
-char converteHex(char numero[]){
-    char x;
+unsigned char converteHex(char numero[]){
+    unsigned char x;
     if(numero[0] == '0'){
         if(numero[1] == '0'){
             x = 0x00;
@@ -808,7 +808,7 @@ void main(void) {
     unsigned char horaAtual[2] = "00";
     unsigned char minutoAtual[2] = "00";
     unsigned char segundoAtual[2] = "00";
-    char horaAtualChar, minutoAtualChar, segundoAtualchar, horaAlarme[2], minutoAlarme[2], tabelaAlarmes[3][4], horaAlarmeDispositivo[2], minutoAlarmeDispositivo[2], antAlarmeHora[2], antAlarmeMinuto[2];
+    char horaAlarme[2], minutoAlarme[2], tabelaAlarmes[3][4], horaAlarmeDispositivo[2], minutoAlarmeDispositivo[2], antAlarmeHora[2], antAlarmeMinuto[2];
     unsigned int quantidadeAlarmes, alarmeAtual, alarmeAnterior, quantidade, som, sair;
     
     if(readEEPROM(0x00) == '1'){ // caso tenha dados na memoria, carrega a mesma
@@ -818,20 +818,17 @@ void main(void) {
         som = atoi(readEEPROM(0xF));
     }else{ // realiza a configuracao
         configuraHorarioAtual(horaAtual, minutoAtual, segundoAtual);
-        horaAtualChar = converteHex(horaAtual);
-        minutoAtualChar = converteHex(minutoAtual);
-        segundoAtualchar = converteHex(segundoAtual);
     
         ENDL= 3; //segundos
-        ESCRITA_PCF8523T(ENDH, ENDL, segundoAtualchar); // escreve no módulo RTC
+        ESCRITA_PCF8523T(ENDH, ENDL, converteHex(segundoAtual)); // escreve no módulo RTC
         __delay_ms(10);
 
         ENDL= 4; //minutos
-        ESCRITA_PCF8523T(ENDH, ENDL, minutoAtualChar);
+        ESCRITA_PCF8523T(ENDH, ENDL, converteHex(minutoAtual));
         __delay_ms(10);
 
         ENDL= 5; //horas
-        ESCRITA_PCF8523T(ENDH, ENDL, horaAtualChar);
+        ESCRITA_PCF8523T(ENDH, ENDL, converteHex(horaAtual));
         __delay_ms(10);
     
         quantidadeAlarmes = 0;
@@ -1001,17 +998,14 @@ void main(void) {
             }else if(opcao == 4){ // configura horario atual
                 sendCMD(CLEAR);
                 configuraHorarioAtual(horaAtual, minutoAtual, segundoAtual);
-                horaAtualChar = converteHex(horaAtual);
-                minutoAtualChar = converteHex(minutoAtual);
-                segundoAtualchar = converteHex(segundoAtual);
                 ENDL= 3; //segundos
-                ESCRITA_PCF8523T(ENDH, ENDL, segundoAtualchar);
+                ESCRITA_PCF8523T(ENDH, ENDL, converteHex(segundoAtual));
                 __delay_ms(10);
                 ENDL= 4; //minutos
-                ESCRITA_PCF8523T(ENDH, ENDL, minutoAtualChar);
+                ESCRITA_PCF8523T(ENDH, ENDL, converteHex(minutoAtual));
                 __delay_ms(10);
                 ENDL= 5; //horas
-                ESCRITA_PCF8523T(ENDH, ENDL, horaAtualChar);
+                ESCRITA_PCF8523T(ENDH, ENDL, converteHex(horaAtual));
                 __delay_ms(10);
             }else{
                 leituraHora(dadoHoraAtual);

@@ -226,7 +226,7 @@ unsigned char LEITURA_PCF8523T (unsigned char _ENDH, unsigned char _ENDL){
 }
 
 void leituraHora(char *hour){
-    char vet[] = {'0','1','2','3','4','5','6'};
+    char vet[] = {'0','1','2','3','4','5','6', '7', '8', '9'};
     
     int j = 0;
     for(int i = 5;i >= 4; i--)
@@ -239,6 +239,10 @@ void leituraHora(char *hour){
         if(i > 4)
             hour[j] = ':';
         j++;
+    }
+    
+    if(hour[0] > '2'){
+        hour[0] = '1';
     }
 }
 //*********************************************************************
