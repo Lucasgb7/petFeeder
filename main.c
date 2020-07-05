@@ -905,6 +905,7 @@ void main(void) {
     
     char dadoHoraAtual[6];
     leituraHora(dadoHoraAtual);
+    exibeInformacoes(dadoHoraAtual, horaAlarmeDispositivo, minutoAlarmeDispositivo, antAlarmeHora, antAlarmeMinuto, quantidade + '0');
     
     int i = 0;
     
